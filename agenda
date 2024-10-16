@@ -1,0 +1,65 @@
+import java.util.concurrent.*;
+
+class Task implements Runnable {
+    private final String taskName;
+
+    public Task(String taskName) {
+        this.taskName = taskName;
+    }
+
+    @Override
+    public void run() {
+        System.out.println(Thread.currentThread().getName() + " executando tarefa: " + taskName);
+        try {
+            Thread.sleep(2000); // Simula tempo de execução da tarefa
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        System.out.println(Thread.currentThread().getName() + " finalizou a tarefa: " + taskName);
+    }
+}
+
+class TaskScheduler {
+    private final ScheduledExecutorService scheduler;
+
+    public TaskScheduler(int poolSize) {
+        this.scheduler = Executors.newScheduledThreadPool(poolSize);
+    }
+
+    public void scheduleTask(Task task, long delay, TimeUnit unit) {
+        scheduler.schedule(task, delay, unit);
+    }
+
+    public void shutdownScheduler() {
+        scheduler.shutdown();
+        try {
+            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
+                scheduler.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            scheduler.shutdownNow();
+        }
+    }
+}
+
+public class DistributedTaskScheduler {
+    public static void main(String[] args) {
+        TaskScheduler scheduler = new TaskScheduler(4); // Cria um pool com 4 threads
+
+        // Agendando múltiplas tarefas com diferentes delays
+        scheduler.scheduleTask(new Task("Tarefa 1"), 1, TimeUnit.SECONDS);
+        scheduler.scheduleTask(new Task("Tarefa 2"), 3, TimeUnit.SECONDS);
+        scheduler.scheduleTask(new Task("Tarefa 3"), 5, TimeUnit.SECONDS);
+        scheduler.scheduleTask(new Task("Tarefa 4"), 7, TimeUnit.SECONDS);
+
+        try {
+            Thread.sleep(10000); // Espera para permitir que todas as tarefas sejam executadas
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        // Finaliza o agendador após todas as tarefas
+        scheduler.shutdownScheduler();
+        System.out.println("Sistema de agendamento finalizado.");
+    }
+}
